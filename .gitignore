@@ -1,0 +1,31 @@
+*.swp
+*.log
+
+###################
+#  Built objects  #
+###################
+
+*.o
+*.lo
+*.la
+
+###############
+#  Autotools  #
+###############
+
+*.trs
+*.in
+*~
+Makefile
+temp
+.deps/
+.libs/
+/stamp-h1
+/config.h
+/config.status
+/aclocal.m4
+/configure
+/libtool
+/m4/
+/build-aux/
+/autom4te.cache/
