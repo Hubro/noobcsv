@@ -8,6 +8,7 @@
 *.o
 *.lo
 *.la
+/test/check_noobcsv
 
 ###############
 #  Autotools  #
