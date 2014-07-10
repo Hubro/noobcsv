@@ -2,14 +2,19 @@
 #ifndef NOOBCSV_H
 #define NOOBCSV_H
 
-/*
- * Structure for holding options about reading and writing CSV files.
- */
-struct NoobCSVOptions_ {
-  int first_line;
-  int last_line;
-  int line_count;
+#include <stdio.h>
 
+#define NOOBCSV_BUFSIZE 1024
+
+/***************************************************************************
+ *                            CORE DECLARATIONS                            *
+ ***************************************************************************/
+
+/* Abstract datatype for a noobcsv read/write session. */
+typedef struct NoobCSVHandle_ NoobCSVHandle;
+
+/* Structure for holding options about reading and writing CSV files */
+struct NoobCSVOptions {
   char field_delimiter;
   char text_delimiter;
   char line_endings;
@@ -17,14 +22,33 @@ struct NoobCSVOptions_ {
   int auto_line_endings;
 };
 
-typedef struct NoobCSVOptions_ NoobCSVOptions;
+/* Creates and returns a NoobCSVOptions struct with reasonable defaults */
+struct NoobCSVOptions noobcsv_create_opts();
 
-/*
- * Sets appropriate defaults to each field.
- *
- * If you don't plan on filling every field manually, you should use this
- * function.
- */
-void noobcsv_init_opts(NoobCSVOptions* opts);
+/* Creates and returns a NoobCSVHandle struct */
+NoobCSVHandle *noobcsv_create_handle(FILE *file, struct NoobCSVOptions *opts);
+
+/* Creates and returns a NoobCSVHandle struct with a custom buffer size */
+NoobCSVHandle *noobcsv_create_handle_bs(
+  FILE *file, struct NoobCSVOptions *opts, ssize_t bufsize
+);
+
+void noobcsv_free_handle(NoobCSVHandle *handle);
+
+/***************************************************************************
+ *                       READ-SPECIFIC DECLARATIONS                        *
+ ***************************************************************************/
+
+/* Moves the file position indicator to the start of the next field */
+int noobcsv_next_field(NoobCSVHandle *handle);
+
+/* Moves the file position indicator to the start of the next record */
+int noobcsv_next_record(NoobCSVHandle *handle);
+
+/***************************************************************************
+ *                       WRITE-SPECIFIC DECLARATIONS                       *
+ ***************************************************************************/
+
+/* Nothing here yet... */
 
 #endif

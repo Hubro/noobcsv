@@ -1,29 +1,46 @@
 
+#include <stdlib.h>   /* malloc */
+
 #include "noobcsv.h"
+#include "noobcsv_private.h"
 
-/*
- * Structure for holding options about reading and writing CSV files.
- */
-struct NoobCSVOptions_ {
-  int first_line;
-  int last_line;
-  int line_count;
+struct NoobCSVOptions noobcsv_create_opts()
+{
+  struct NoobCSVOptions opts;
 
-  char field_delimiter;
-  char text_delimiter;
-  char line_endings;
+  opts.field_delimiter = ',';
+  opts.text_delimiter = '"';
+  opts.line_endings = '\n';
 
-  int auto_line_endings;
-};
+  opts.auto_line_endings = 1;
 
-void noobcsv_init_opts(NoobCSVOptions* opts) {
-  opts->first_line = -1;
-  opts->last_line = -1;
-  opts->line_count = -1;
+  return opts;
+}
 
-  opts->field_delimiter = ',';
-  opts->text_delimiter = '"';
-  opts->line_endings = '\n';
+NoobCSVHandle *noobcsv_create_handle(FILE *file, struct NoobCSVOptions *opts)
+{
+  return noobcsv_create_handle_bs(file, opts, NOOBCSV_BUFSIZE);
+}
 
-  opts->auto_line_endings = 1;
+NoobCSVHandle *noobcsv_create_handle_bs(FILE *file,
+                                        struct NoobCSVOptions *opts,
+                                        ssize_t bufsize)
+{
+  NoobCSVHandle *handle = malloc(sizeof(NoobCSVHandle));
+
+  handle->opts = opts;
+  handle->file = file;
+  handle->bufsize = bufsize;
+  handle->readbufcrs = -1;
+  handle->in_text = 0;
+
+  handle->readbuf = malloc(sizeof(char) * bufsize);
+
+  return handle;
+}
+
+void noobcsv_free_handle(NoobCSVHandle *handle)
+{
+  free(handle->readbuf);
+  free(handle);
 }
