@@ -12,6 +12,25 @@
   noobcsv_free_handle(handle); \
   fclose(file)
 
+#define ASSERT_INT_EQ(i1, i2) \
+  ck_assert_msg( \
+    (i1) == (i2), \
+    "Assertion '" #i1 " == " #i2 "' failed: " \
+      #i1 " = %d, " #i2 " = %d", \
+    (i1), (i2) \
+  )
+
+#define ASSERT_CHAR_EQ(c1, c2) \
+  ck_assert_msg( \
+    (c1) == (c2), \
+    "Assertion '" #c1 " == " #c2 "' failed: " \
+      #c1 " = '%c', " #c2 " = '%c'", \
+    (c1), (c2) \
+  )
+
+#define ASSERT_CHAR_ARRAY_EQ(a1, a2, size) \
+  assert_char_array_eq(a1, a2, #a1, #a2, size)
+
 #include <stdlib.h>   /* malloc */
 #include <unistd.h>   /* readlink */
 #include <libgen.h>   /* dirname */
@@ -33,6 +52,17 @@ static FILE *open_test_file(char *name, char *mode)
   FILE *file = fopen(path_buffer, mode);
 
   return file;
+}
+
+static int assert_char_array_eq(char *a1, char *a2,
+                                char *as1, char *as2,
+                                ssize_t size)
+{
+  ck_assert_msg(
+    memcmp(a1, a2, size) == 0,
+    "Assertion \"%s\" == \"%s\" failed: %s = \"%.*s\", %s = \"%.*s\"",
+    as1, as2, as1, size, a1, as2, size, a2
+  );
 }
 
 #endif

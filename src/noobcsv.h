@@ -10,7 +10,7 @@
  *                            CORE DECLARATIONS                            *
  ***************************************************************************/
 
-/* Abstract datatype for a noobcsv read/write session. */
+/* Abstract datatype for a noobcsv read/write session */
 typedef struct NoobCSVHandle_ NoobCSVHandle;
 
 /* Structure for holding options about reading and writing CSV files */
@@ -22,6 +22,16 @@ struct NoobCSVOptions {
   int auto_line_endings;
 };
 
+/* noobcsv character types */
+typedef enum {
+  NOOBCSV_TEXT,
+  NOOBCSV_FDELIM,
+  NOOBCSV_TDELIM_OPEN,
+  NOOBCSV_TDELIM_CLOSE,
+  NOOBCSV_LINE_BREAK,
+  NOOBCSV_EOF
+} noobcsv_ct;
+
 /* Creates and returns a NoobCSVOptions struct with reasonable defaults */
 struct NoobCSVOptions noobcsv_create_opts();
 
@@ -32,6 +42,10 @@ NoobCSVHandle *noobcsv_create_handle(FILE *file, struct NoobCSVOptions *opts);
 NoobCSVHandle *noobcsv_create_handle_bs(
   FILE *file, struct NoobCSVOptions *opts, ssize_t bufsize
 );
+
+/* Change the buffer size. MUST ONLY BE DONE RIGHT AFTER HANDLE CREATION.
+ * Returns 1 on success, 0 if "realloc" failed. */
+int noobcsv_set_bufsize(NoobCSVHandle *handle, ssize_t new_size);
 
 void noobcsv_free_handle(NoobCSVHandle *handle);
 

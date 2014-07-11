@@ -39,6 +39,19 @@ NoobCSVHandle *noobcsv_create_handle_bs(FILE *file,
   return handle;
 }
 
+int noobcsv_set_bufsize(NoobCSVHandle *handle, ssize_t new_size)
+{
+  char* new_buf = realloc(handle->readbuf, new_size);
+
+  if (new_buf == NULL)
+    return 0;
+  else {
+    handle->bufsize = new_size;
+    handle->readbuf = new_buf;
+    return 1;
+  }
+}
+
 void noobcsv_free_handle(NoobCSVHandle *handle)
 {
   free(handle->readbuf);

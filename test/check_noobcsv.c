@@ -51,7 +51,8 @@ Suite *noobcsv_suite(void)
   return s;
 }
 
-int main() {
+int main()
+{
   int number_failed = 0;
 
   Suite* s = noobcsv_suite();

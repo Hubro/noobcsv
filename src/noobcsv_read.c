@@ -4,10 +4,9 @@
 #include "noobcsv.h"
 #include "noobcsv_private.h"
 
-/* Fills the read buffer with the next "bufsize" bytes from the file */
 static void fill_buffer(NoobCSVHandle *handle);
+static noobcsv_ct consume_char(NoobCSVHandle *handle, char *out);
 static int on_text_delimiter(NoobCSVHandle *handle);
-static int on_start_of_field(NoobCSVHandle *handle);
 static int is_line_break(char c, NoobCSVHandle *handle);
 
 int noobcsv_next_field(NoobCSVHandle *handle)
@@ -15,6 +14,7 @@ int noobcsv_next_field(NoobCSVHandle *handle)
   FILE *file = handle->file;
   char *buffer = handle->readbuf;
   ssize_t bufsize = handle->bufsize;
+  noobcsv_ct ct;
 
   /* First read */
   if (handle->readbufcrs == -1) {
@@ -27,38 +27,21 @@ int noobcsv_next_field(NoobCSVHandle *handle)
   if (buffer[handle->readbufcrs] == '\0')
     return 0;
 
+  consume_char(handle, NULL);
+
   while (1) {
-    /* Are we on the last char? */
-    if (buffer[handle->readbufcrs + 1] == '\0')
+    ct = consume_char(handle, NULL);
+
+    if (ct == NOOBCSV_EOF)
       return 0;
-
-    handle->readbufcrs++;
-
-    /* Only 1 more char in the buffer? Time for a refill */
-    if (handle->readbufcrs == bufsize - 2) {
-      fill_buffer(handle);
-    }
-
-    char curchar = buffer[handle->readbufcrs];
-    char nextchar = buffer[handle->readbufcrs + 1];
-
-    if (on_text_delimiter(handle)) {
-      /* An opening text delimiter is the start of a field */
-      if (!handle->in_text) {
-        handle->in_text = 1;
-        break;
-      }
-      else {
-        handle->in_text = 0;
-        continue;
-      }
-    }
-
-    if (on_start_of_field(handle))
-      break;
+    else if (ct == NOOBCSV_FDELIM || ct == NOOBCSV_LINE_BREAK)
+      return 1;
   }
+}
 
-  return 1;
+int noobcsv_next_record(NoobCSVHandle *handle)
+{
+
 }
 
 /* Fills the buffer with new data from the file, starting from two positions
@@ -92,6 +75,66 @@ static void fill_buffer(NoobCSVHandle *handle)
     handle->readbuf[bytes_read] = '\0';
 }
 
+/* Consumes one character (or possibly two, if auto_line_endings is 1).
+ * If the character consumed is just the final line break before EOF,
+ * NOOBCSV_EOF is returned instead of NOOBCSV_LINE_BREAK. */
+static noobcsv_ct consume_char(NoobCSVHandle *handle, char *out)
+{
+  FILE *file = handle->file;
+  char *buffer = handle->readbuf;
+  ssize_t bufsize = handle->bufsize;
+  noobcsv_ct retval = NOOBCSV_TEXT;
+
+  /* Are we on the last char? */
+  if (buffer[handle->readbufcrs] == '\0')
+    return NOOBCSV_EOF;
+
+  char curchar = buffer[handle->readbufcrs];
+  char nextchar = buffer[handle->readbufcrs + 1];
+
+  if (out != NULL)
+    *out = curchar;
+
+  /* Current character is a field delimiter? */
+  if (curchar == handle->opts->field_delimiter && !handle->in_text)
+    retval = NOOBCSV_FDELIM;
+
+  /* Current character is a text delimiter? */
+  if (on_text_delimiter(handle)) {
+    if (!handle->in_text) {
+      handle->in_text = 1;
+      retval = NOOBCSV_TDELIM_OPEN;
+    }
+    else {
+      handle->in_text = 0;
+      retval = NOOBCSV_TDELIM_CLOSE;
+    }
+  }
+
+  /* Current character is a line break? */
+  if (handle->opts->auto_line_endings) {
+    if (curchar == '\n' || curchar == '\r')
+      retval = NOOBCSV_LINE_BREAK;
+
+    /* If this is the '\r' in "\r\n", the cursor is moved ahead one additional
+     * time */
+    if (curchar == '\r' && nextchar == '\n')
+      handle->readbufcrs++;
+  }
+
+  handle->readbufcrs++;
+
+  /* Was this the final line break of the file? */
+  if (retval == NOOBCSV_LINE_BREAK && buffer[handle->readbufcrs] == '\0')
+    retval = NOOBCSV_EOF;
+
+  /* Only 1 more char in the buffer? Time for a refill */
+  if (handle->readbufcrs == bufsize - 2)
+    fill_buffer(handle);
+
+  return retval;
+}
+
 static int on_text_delimiter(NoobCSVHandle *handle)
 {
   char tdelim = handle->opts->text_delimiter;
@@ -123,45 +166,6 @@ static int on_text_delimiter(NoobCSVHandle *handle)
       if (nc == fdelim || is_line_break(nc, handle))
         return 1;
     }
-  }
-
-  return 0;
-}
-
-/* A character is the start of a field if it is directly after a field
- * delimiter or if it is the first character after a line break, even if the
- * character is a text delimiter */
-static int on_start_of_field(NoobCSVHandle *handle)
-{
-  char *buffer = handle->readbuf;
-  int cursor = handle->readbufcrs;
-  char fdelim = handle->opts->field_delimiter;
-
-  /* First character of the file? */
-  if (cursor == 0)
-    return 1;
-
-  /* Last character of the file? */
-  if (buffer[cursor + 1] == '\0')
-    return 0;
-
-  if (handle->in_text && on_text_delimiter(handle)) {
-    /* An opening text delimiter is the start of a field */
-    return 1;
-  }
-  else if (handle->in_text) {
-    /* If the cursor is between text delimiters but not on the opening text
-     * delimiter, this can't be the start of a field */
-    return 0;
-  }
-  else {
-    /* Previous character was a field delimiter? */
-    if (buffer[cursor - 1] == fdelim)
-      return 1;
-
-    /* Previous character was a line break? */
-    if (is_line_break(buffer[cursor - 1], handle))
-      return 1;
   }
 
   return 0;
