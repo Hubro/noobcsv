@@ -9,7 +9,7 @@
  *  Exported functions  *
  ************************/
 
-START_TEST (check_next_field)
+START_TEST(check_next_field)
 {
   SET_UP_TEST_HANDLE ("simple.csv", "r");
 
@@ -23,7 +23,7 @@ START_TEST (check_next_field)
   for (i = 0; i < count; i++) {
     result = noobcsv_next_field(handle);
     ASSERT_INT_EQ(result, 1);
-    ASSERT_INT_EQ(ei[i], handle->readbufcrs);
+    ASSERT_INT_EQ(handle->readbufcrs, ei[i]);
   }
 
   /* There are no more fields, a seek should now fail */
@@ -37,7 +37,7 @@ START_TEST (check_next_field)
 }
 END_TEST
 
-START_TEST (check_next_field_quotes)
+START_TEST(check_next_field_quotes)
 {
   SET_UP_TEST_HANDLE ("quoted.csv", "r");
 
@@ -65,7 +65,7 @@ START_TEST (check_next_field_quotes)
 }
 END_TEST
 
-START_TEST (check_next_field_mini)
+START_TEST(check_next_field_mini)
 {
   SET_UP_TEST_HANDLE ("minimum.csv", "r");
 
@@ -80,11 +80,67 @@ START_TEST (check_next_field_mini)
 }
 END_TEST
 
+START_TEST(check_next_record)
+{
+  SET_UP_TEST_HANDLE("simple.csv", "r");
+
+  ASSERT_INT_EQ(handle->readbufcrs, -1);
+
+  /* Expected indexes */
+  int ei[] = {6, 12};
+  int count = sizeof(ei) / sizeof(ei[0]);
+  int i, result;
+
+  for (i = 0; i < count; i++) {
+    result = noobcsv_next_record(handle);
+    ASSERT_INT_EQ(result, 1);
+    ASSERT_INT_EQ(handle->readbufcrs, ei[i]);
+  }
+
+  /* There are no more records, a seek should now fail */
+  result = noobcsv_next_record(handle);
+  ASSERT_INT_EQ(result, 0);
+
+  /* The cursor should rest on the null-byte after the last byte of the file */
+  ASSERT_INT_EQ(handle->readbufcrs, 18);
+
+  FREE_TEST_HANDLE;
+}
+END_TEST
+
+START_TEST(check_next_record_quotes)
+{
+  SET_UP_TEST_HANDLE ("quoted.csv", "r");
+
+  ASSERT_INT_EQ(-1, handle->readbufcrs);
+
+  /* Expected indexes */
+  int ei[] = {18, 33, 53};
+  int count = sizeof(ei) / sizeof(ei[0]);
+  int i, result;
+
+  for (i = 0; i < count; i++) {
+    result = noobcsv_next_record(handle);
+    ASSERT_INT_EQ(result, 1);
+    ASSERT_INT_EQ(ei[i], handle->readbufcrs);
+  }
+
+  /* There are no more fields, a seek should now fail */
+  result = noobcsv_next_record(handle);
+  ASSERT_INT_EQ(result, 0);
+
+  /* The cursor should rest on the null-byte after the last byte of the file */
+  ASSERT_INT_EQ(handle->readbufcrs, 79);
+
+  FREE_TEST_HANDLE;
+}
+END_TEST
+
 /**********************
  *  Static functions  *
  **********************/
 
-START_TEST (check_fill_buffer)
+START_TEST(check_fill_buffer)
 {
   char *expected_buf;
 
@@ -106,6 +162,51 @@ START_TEST (check_fill_buffer)
 
   expected_buf = "o\",\"bar\"";
   ASSERT_CHAR_ARRAY_EQ(handle->readbuf, expected_buf, handle->bufsize);
+
+  FREE_TEST_HANDLE;
+}
+END_TEST
+
+START_TEST(check_fill_buffer_eof)
+{
+  char *expected_buf;
+
+  SET_UP_TEST_HANDLE("quoted.csv", "r");
+
+  /* Sets buffer size to 8 bytes */
+  int result = noobcsv_set_bufsize(handle, 8);
+  ASSERT_INT_EQ(result, 1);
+
+  /* This simulates an empty buffer 4 bytes from EOF */
+  fseek(handle->file, -3, SEEK_END);
+  handle->readbufcrs = handle->bufsize - 1;
+
+  fill_buffer(handle);
+
+  /* Buffer should contain the last 7 bytes of the file */
+  expected_buf = ",\"he\"\n";
+  ASSERT_CHAR_ARRAY_EQ(handle->readbuf, expected_buf, 7);
+
+  FREE_TEST_HANDLE;
+}
+END_TEST
+
+START_TEST(check_fill_buffer_whole_file)
+{
+  char *expected_buf;
+
+  SET_UP_TEST_HANDLE("quoted.csv", "r");
+
+  fill_buffer(handle);
+
+  expected_buf = "\"foo\",\"bar\",\"baz\"\n"
+                 "no,quotes,here\n"
+                 "partly,\"quoted\",row\n"
+                 "\"\"\"tricky\"\", one\",he,\"he\"\n";
+
+  ASSERT_STR_EQ(handle->readbuf, expected_buf);
+
+  FREE_TEST_HANDLE;
 }
 END_TEST
 
@@ -117,7 +218,12 @@ TCase* noobcsv_read_tc(void)
   tcase_add_test(tc_write, check_next_field_quotes);
   tcase_add_test(tc_write, check_next_field_mini);
 
+  tcase_add_test(tc_write, check_next_record);
+  tcase_add_test(tc_write, check_next_record_quotes);
+
   tcase_add_test(tc_write, check_fill_buffer);
+  tcase_add_test(tc_write, check_fill_buffer_eof);
+  tcase_add_test(tc_write, check_fill_buffer_whole_file);
 
   return tc_write;
 }

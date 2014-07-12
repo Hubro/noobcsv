@@ -4,6 +4,7 @@
 #include "noobcsv.h"
 #include "noobcsv_private.h"
 
+static int ready_buffer(NoobCSVHandle *handle);
 static void fill_buffer(NoobCSVHandle *handle);
 static noobcsv_ct consume_char(NoobCSVHandle *handle, char *out);
 static int on_text_delimiter(NoobCSVHandle *handle);
@@ -11,20 +12,9 @@ static int is_line_break(char c, NoobCSVHandle *handle);
 
 int noobcsv_next_field(NoobCSVHandle *handle)
 {
-  FILE *file = handle->file;
-  char *buffer = handle->readbuf;
-  ssize_t bufsize = handle->bufsize;
   noobcsv_ct ct;
 
-  /* First read */
-  if (handle->readbufcrs == -1) {
-    fseek(file, 0, SEEK_SET);
-
-    fill_buffer(handle);
-  }
-
-  /* Nothing more to read */
-  if (buffer[handle->readbufcrs] == '\0')
+  if (!ready_buffer(handle))
     return 0;
 
   consume_char(handle, NULL);
@@ -34,14 +24,48 @@ int noobcsv_next_field(NoobCSVHandle *handle)
 
     if (ct == NOOBCSV_EOF)
       return 0;
-    else if (ct == NOOBCSV_FDELIM || ct == NOOBCSV_LINE_BREAK)
+    else if (ct == NOOBCSV_FDELIM)
+      return 1;
+    else if (ct == NOOBCSV_LINE_BREAK && !handle->in_text)
       return 1;
   }
 }
 
 int noobcsv_next_record(NoobCSVHandle *handle)
 {
+  noobcsv_ct ct;
 
+  if (!ready_buffer(handle))
+    return 0;
+
+  consume_char(handle, NULL);
+
+  while (1) {
+    ct = consume_char(handle, NULL);
+
+    if (ct == NOOBCSV_EOF)
+      return 0;
+    else if (ct == NOOBCSV_LINE_BREAK && !handle->in_text)
+      return 1;
+  }
+}
+
+/* Fills the buffer if it hasn't been filled yet. Returns 0 if there is nothing
+ * more to read. */
+static int ready_buffer(NoobCSVHandle *handle)
+{
+  /* First read */
+  if (handle->readbufcrs == -1) {
+    fseek(handle->file, 0, SEEK_SET);
+
+    fill_buffer(handle);
+  }
+
+  /* Nothing more to read */
+  if (handle->readbuf[handle->readbufcrs] == '\0')
+    return 0;
+
+  return 1;
 }
 
 /* Fills the buffer with new data from the file, starting from two positions
@@ -129,7 +153,7 @@ static noobcsv_ct consume_char(NoobCSVHandle *handle, char *out)
     retval = NOOBCSV_EOF;
 
   /* Only 1 more char in the buffer? Time for a refill */
-  if (handle->readbufcrs == bufsize - 2)
+  if (handle->readbufcrs >= bufsize - 2)
     fill_buffer(handle);
 
   return retval;

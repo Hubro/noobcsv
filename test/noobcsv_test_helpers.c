@@ -28,6 +28,13 @@
     (c1), (c2) \
   )
 
+#define ASSERT_STR_EQ(s1, s2) \
+  ck_assert_msg( \
+    strcmp((s1), (s2)) == 0, \
+    "Assertion '%s == %s' failed: %s = \"%s\", %s = \"%s\"", \
+    #s1, #s2, #s1, s1, #s2, s2 \
+  )
+
 #define ASSERT_CHAR_ARRAY_EQ(a1, a2, size) \
   assert_char_array_eq(a1, a2, #a1, #a2, size)
 
