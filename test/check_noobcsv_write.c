@@ -1,5 +1,6 @@
 
 #include <check.h>
+#include "check_noobcsv_write.h"
 #include "noobcsv.h"
 
 START_TEST (check_nothing_w)

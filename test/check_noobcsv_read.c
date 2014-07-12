@@ -1,6 +1,7 @@
 
 #include <stdio.h>
 #include <check.h>
+#include "check_noobcsv_read.h"
 #include "noobcsv_test_helpers.c"
 
 #include "noobcsv_read.c"

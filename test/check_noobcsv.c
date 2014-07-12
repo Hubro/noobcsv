@@ -3,8 +3,8 @@
 #include <check.h>
 #include "noobcsv.h"
 
-#include "check_noobcsv_write.c"
-#include "check_noobcsv_read.c"
+#include "check_noobcsv_write.h"
+#include "check_noobcsv_read.h"
 
 START_TEST (check_options_struct)
 {
