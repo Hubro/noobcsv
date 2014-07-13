@@ -22,16 +22,6 @@ struct NoobCSVOptions {
   int auto_line_endings;
 };
 
-/* noobcsv character types */
-typedef enum {
-  NOOBCSV_TEXT,
-  NOOBCSV_FDELIM,
-  NOOBCSV_TDELIM_OPEN,
-  NOOBCSV_TDELIM_CLOSE,
-  NOOBCSV_LINE_BREAK,
-  NOOBCSV_EOF
-} noobcsv_ct;
-
 /* Creates and returns a NoobCSVOptions struct with reasonable defaults */
 struct NoobCSVOptions noobcsv_create_opts();
 

@@ -7,7 +7,7 @@
 static int ready_buffer(NoobCSVHandle *handle);
 static void fill_buffer(NoobCSVHandle *handle);
 static noobcsv_ct consume_char(NoobCSVHandle *handle, char *out);
-static int on_text_delimiter(NoobCSVHandle *handle);
+static noobcsv_tdt on_text_delimiter(NoobCSVHandle *handle);
 static int is_line_break(char c, NoobCSVHandle *handle);
 
 int noobcsv_next_field(NoobCSVHandle *handle)
@@ -120,18 +120,28 @@ static noobcsv_ct consume_char(NoobCSVHandle *handle, char *out)
     *out = curchar;
 
   /* Current character is a field delimiter? */
-  if (curchar == handle->opts->field_delimiter && !handle->in_text)
+  if (curchar == handle->opts->field_delimiter && !handle->in_text) {
     retval = NOOBCSV_FDELIM;
+    goto done;
+  }
 
   /* Current character is a text delimiter? */
-  if (on_text_delimiter(handle)) {
-    if (!handle->in_text) {
-      handle->in_text = 1;
-      retval = NOOBCSV_TDELIM_OPEN;
-    }
-    else {
-      handle->in_text = 0;
-      retval = NOOBCSV_TDELIM_CLOSE;
+  noobcsv_tdt tdt = on_text_delimiter(handle);
+
+  if (tdt) {
+    switch(tdt) {
+      case NOOBCSV_TD_OPEN:
+        handle->in_text = 1;
+        retval = NOOBCSV_TDELIM_OPEN;
+        goto done;
+      case NOOBCSV_TD_CLOSE:
+        handle->in_text = 0;
+        retval = NOOBCSV_TDELIM_CLOSE;
+        goto done;
+      case NOOBCSV_TD_ESCAPED:
+        retval = NOOBCSV_TEXT;
+        handle->readbufcrs++;   /* The next character must be skipped */
+        goto done;
     }
   }
 
@@ -146,6 +156,8 @@ static noobcsv_ct consume_char(NoobCSVHandle *handle, char *out)
       handle->readbufcrs++;
   }
 
+done:
+
   handle->readbufcrs++;
 
   /* Was this the final line break of the file? */
@@ -159,7 +171,9 @@ static noobcsv_ct consume_char(NoobCSVHandle *handle, char *out)
   return retval;
 }
 
-static int on_text_delimiter(NoobCSVHandle *handle)
+/* A text delimiter is only escaped if the NEXT character is a text delimiter,
+ * "consume_char" will make sure of that. */
+static noobcsv_tdt on_text_delimiter(NoobCSVHandle *handle)
 {
   char tdelim = handle->opts->text_delimiter;
   char fdelim = handle->opts->field_delimiter;
@@ -173,23 +187,22 @@ static int on_text_delimiter(NoobCSVHandle *handle)
   if (c == tdelim) {
     /* Text delimiter as the first char of the file? */
     if (crs == 0)
-      return 1;
+      return NOOBCSV_TD_OPEN;
 
-    /* Is this an opening text delimiter? */
-    if (!handle->in_text) {
+    /* Is this an opening text delimiter? Opening text delimiters can't be
+     * escaped */
+    if (!handle->in_text)
       if (pc == fdelim || is_line_break(pc, handle))
-        return 1;
-    }
+        return NOOBCSV_TD_OPEN;
+
+    /* Escaped? */
+    if (nc == tdelim)
+      return NOOBCSV_TD_ESCAPED;
 
     /* Is this a closing text delimiter? */
-    if (handle->in_text) {
-      /* Escaped? */
-      if (pc == tdelim)
-        return 0;
-
+    if (handle->in_text)
       if (nc == fdelim || is_line_break(nc, handle))
-        return 1;
-    }
+        return NOOBCSV_TD_CLOSE;
   }
 
   return 0;

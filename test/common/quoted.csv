@@ -1,4 +1,4 @@
 "foo","bar","baz"
 no,quotes,here
 partly,"quoted",row
-"""tricky"", one",he,"he"
+"""tricky"", ""one""","",""

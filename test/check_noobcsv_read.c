@@ -45,14 +45,17 @@ START_TEST(check_next_field_quotes)
   ASSERT_INT_EQ(-1, handle->readbufcrs);
 
   /* Expected indexes */
-  int ei[] = {6, 12, 18, 21, 28, 33, 40, 49, 53, 71, 74};
+  int ei[] = {6, 12, 18, 21, 28, 33, 40, 49, 53, 75, 78};
   int count = sizeof(ei) / sizeof(ei[0]);
   int i, result;
 
   for (i = 0; i < count; i++) {
     result = noobcsv_next_field(handle);
-    ASSERT_INT_EQ(result, 1);
-    ASSERT_INT_EQ(ei[i], handle->readbufcrs);
+    ASSERT_INT_EQ_MSG(
+      result, 1,
+      "result was %d for loop index %d (expected index %d)", result, i, ei[i]
+    );
+    ASSERT_INT_EQ(handle->readbufcrs, ei[i]);
   }
 
   /* There are no more fields, a seek should now fail */
@@ -60,7 +63,7 @@ START_TEST(check_next_field_quotes)
   ASSERT_INT_EQ(result, 0);
 
   /* The cursor should rest on the null-byte after the last byte of the file */
-  ASSERT_INT_EQ(handle->readbufcrs, 79);
+  ASSERT_INT_EQ(handle->readbufcrs, 81);
 
   FREE_TEST_HANDLE;
 }
@@ -131,7 +134,7 @@ START_TEST(check_next_record_quotes)
   ASSERT_INT_EQ(result, 0);
 
   /* The cursor should rest on the null-byte after the last byte of the file */
-  ASSERT_INT_EQ(handle->readbufcrs, 79);
+  ASSERT_INT_EQ(handle->readbufcrs, 81);
 
   FREE_TEST_HANDLE;
 }
@@ -185,7 +188,7 @@ START_TEST(check_fill_buffer_eof)
   fill_buffer(handle);
 
   /* Buffer should contain the last 7 bytes of the file */
-  expected_buf = ",\"he\"\n";
+  expected_buf = "\"\",\"\"\n";
   ASSERT_CHAR_ARRAY_EQ(handle->readbuf, expected_buf, 7);
 
   FREE_TEST_HANDLE;
@@ -203,7 +206,7 @@ START_TEST(check_fill_buffer_whole_file)
   expected_buf = "\"foo\",\"bar\",\"baz\"\n"
                  "no,quotes,here\n"
                  "partly,\"quoted\",row\n"
-                 "\"\"\"tricky\"\", one\",he,\"he\"\n";
+                 "\"\"\"tricky\"\", \"\"one\"\"\",\"\",\"\"\n";
 
   ASSERT_STR_EQ(handle->readbuf, expected_buf);
 

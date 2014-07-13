@@ -13,11 +13,15 @@
   fclose(file)
 
 #define ASSERT_INT_EQ(i1, i2) \
+  ASSERT_INT_EQ_MSG(i1, i2, \
+    "Assertion '%s == %s' failed: %s = %d, %s = %d", \
+    #i1, #i2, #i1, (i1), #i2, (i2) \
+  )
+
+#define ASSERT_INT_EQ_MSG(i1, i2, ...) \
   ck_assert_msg( \
     (i1) == (i2), \
-    "Assertion '" #i1 " == " #i2 "' failed: " \
-      #i1 " = %d, " #i2 " = %d", \
-    (i1), (i2) \
+    ## __VA_ARGS__ \
   )
 
 #define ASSERT_CHAR_EQ(c1, c2) \
