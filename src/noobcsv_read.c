@@ -22,11 +22,11 @@ int noobcsv_next_field(NoobCSVHandle *handle)
   while (1) {
     ct = consume_char(handle, NULL);
 
-    if (ct == NOOBCSV_EOF)
+    if (ct == NOOBCSV_CT_EOF)
       return 0;
-    else if (ct == NOOBCSV_FDELIM)
+    else if (ct == NOOBCSV_CT_FDELIM)
       return 1;
-    else if (ct == NOOBCSV_LINE_BREAK && !handle->in_text)
+    else if (ct == NOOBCSV_CT_LINE_BREAK && !handle->in_text)
       return 1;
   }
 }
@@ -43,9 +43,9 @@ int noobcsv_next_record(NoobCSVHandle *handle)
   while (1) {
     ct = consume_char(handle, NULL);
 
-    if (ct == NOOBCSV_EOF)
+    if (ct == NOOBCSV_CT_EOF)
       return 0;
-    else if (ct == NOOBCSV_LINE_BREAK && !handle->in_text)
+    else if (ct == NOOBCSV_CT_LINE_BREAK && !handle->in_text)
       return 1;
   }
 }
@@ -101,17 +101,17 @@ static void fill_buffer(NoobCSVHandle *handle)
 
 /* Consumes one character (or possibly two, if auto_line_endings is 1).
  * If the character consumed is just the final line break before EOF,
- * NOOBCSV_EOF is returned instead of NOOBCSV_LINE_BREAK. */
+ * NOOBCSV_CT_EOF is returned instead of NOOBCSV_CT_LINE_BREAK. */
 static noobcsv_ct consume_char(NoobCSVHandle *handle, char *out)
 {
   FILE *file = handle->file;
   char *buffer = handle->readbuf;
   ssize_t bufsize = handle->bufsize;
-  noobcsv_ct retval = NOOBCSV_TEXT;
+  noobcsv_ct retval = NOOBCSV_CT_TEXT;
 
   /* Are we on the last char? */
   if (buffer[handle->readbufcrs] == '\0')
-    return NOOBCSV_EOF;
+    return NOOBCSV_CT_EOF;
 
   char curchar = buffer[handle->readbufcrs];
   char nextchar = buffer[handle->readbufcrs + 1];
@@ -121,7 +121,7 @@ static noobcsv_ct consume_char(NoobCSVHandle *handle, char *out)
 
   /* Current character is a field delimiter? */
   if (curchar == handle->opts->field_delimiter && !handle->in_text) {
-    retval = NOOBCSV_FDELIM;
+    retval = NOOBCSV_CT_FDELIM;
     goto done;
   }
 
@@ -130,16 +130,16 @@ static noobcsv_ct consume_char(NoobCSVHandle *handle, char *out)
 
   if (tdt) {
     switch(tdt) {
-      case NOOBCSV_TD_OPEN:
+      case NOOBCSV_TDT_OPENING:
         handle->in_text = 1;
-        retval = NOOBCSV_TDELIM_OPEN;
+        retval = NOOBCSV_CT_TDELIM_OPEN;
         goto done;
-      case NOOBCSV_TD_CLOSE:
+      case NOOBCSV_TDT_CLOSING:
         handle->in_text = 0;
-        retval = NOOBCSV_TDELIM_CLOSE;
+        retval = NOOBCSV_CT_TDELIM_CLOSE;
         goto done;
-      case NOOBCSV_TD_ESCAPED:
-        retval = NOOBCSV_TEXT;
+      case NOOBCSV_TDT_ESCAPED:
+        retval = NOOBCSV_CT_TEXT;
         handle->readbufcrs++;   /* The next character must be skipped */
         goto done;
     }
@@ -148,7 +148,7 @@ static noobcsv_ct consume_char(NoobCSVHandle *handle, char *out)
   /* Current character is a line break? */
   if (handle->opts->auto_line_endings) {
     if (curchar == '\n' || curchar == '\r')
-      retval = NOOBCSV_LINE_BREAK;
+      retval = NOOBCSV_CT_LINE_BREAK;
 
     /* If this is the '\r' in "\r\n", the cursor is moved ahead one additional
      * time */
@@ -161,8 +161,8 @@ done:
   handle->readbufcrs++;
 
   /* Was this the final line break of the file? */
-  if (retval == NOOBCSV_LINE_BREAK && buffer[handle->readbufcrs] == '\0')
-    retval = NOOBCSV_EOF;
+  if (retval == NOOBCSV_CT_LINE_BREAK && buffer[handle->readbufcrs] == '\0')
+    retval = NOOBCSV_CT_EOF;
 
   /* Only 1 more char in the buffer? Time for a refill */
   if (handle->readbufcrs >= bufsize - 2)
@@ -187,22 +187,22 @@ static noobcsv_tdt on_text_delimiter(NoobCSVHandle *handle)
   if (c == tdelim) {
     /* Text delimiter as the first char of the file? */
     if (crs == 0)
-      return NOOBCSV_TD_OPEN;
+      return NOOBCSV_TDT_OPENING;
 
     /* Is this an opening text delimiter? Opening text delimiters can't be
      * escaped */
     if (!handle->in_text)
       if (pc == fdelim || is_line_break(pc, handle))
-        return NOOBCSV_TD_OPEN;
+        return NOOBCSV_TDT_OPENING;
 
     /* Escaped? */
     if (nc == tdelim)
-      return NOOBCSV_TD_ESCAPED;
+      return NOOBCSV_TDT_ESCAPED;
 
     /* Is this a closing text delimiter? */
     if (handle->in_text)
       if (nc == fdelim || is_line_break(nc, handle))
-        return NOOBCSV_TD_CLOSE;
+        return NOOBCSV_TDT_CLOSING;
   }
 
   return 0;

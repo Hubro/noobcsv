@@ -20,19 +20,19 @@ struct NoobCSVHandle_ {
 
 /* noobcsv character types */
 typedef enum {
-  NOOBCSV_TEXT,
-  NOOBCSV_FDELIM,
-  NOOBCSV_TDELIM_OPEN,
-  NOOBCSV_TDELIM_CLOSE,
-  NOOBCSV_LINE_BREAK,
-  NOOBCSV_EOF
+  NOOBCSV_CT_TEXT,
+  NOOBCSV_CT_FDELIM,
+  NOOBCSV_CT_TDELIM_OPEN,
+  NOOBCSV_CT_TDELIM_CLOSE,
+  NOOBCSV_CT_LINE_BREAK,
+  NOOBCSV_CT_EOF
 } noobcsv_ct;
 
 /* noobcsv text delimiter types */
 typedef enum {
-  NOOBCSV_TD_OPEN = 1,
-  NOOBCSV_TD_CLOSE,
-  NOOBCSV_TD_ESCAPED
+  NOOBCSV_TDT_OPENING = 1,
+  NOOBCSV_TDT_CLOSING,
+  NOOBCSV_TDT_ESCAPED
 } noobcsv_tdt;
 
 #endif
