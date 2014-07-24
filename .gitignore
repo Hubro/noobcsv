@@ -30,3 +30,13 @@ temp
 /m4/
 /build-aux/
 /autom4te.cache/
+
+################
+#  QT Creator  #
+################
+
+libnoobcsv.config
+libnoobcsv.creator
+libnoobcsv.creator.user
+libnoobcsv.files
+libnoobcsv.includes
