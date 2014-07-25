@@ -19,17 +19,17 @@ int noobcsv_next_field(NoobCSVHandle *handle)
   if (!ready_buffer(handle))
     return 0;
 
-  consume_char(handle, NULL);
+  ct = consume_char(handle, NULL);
 
   while (1) {
-    ct = consume_char(handle, NULL);
-
     if (ct == NOOBCSV_CT_EOF)
       return 0;
     else if (ct == NOOBCSV_CT_FDELIM)
       return 1;
     else if (ct == NOOBCSV_CT_RDELIM && !handle->in_text)
       return 1;
+
+    ct = consume_char(handle, NULL);
   }
 }
 
@@ -40,15 +40,15 @@ int noobcsv_next_record(NoobCSVHandle *handle)
   if (!ready_buffer(handle))
     return 0;
 
-  consume_char(handle, NULL);
+  ct = consume_char(handle, NULL);
 
   while (1) {
-    ct = consume_char(handle, NULL);
-
     if (ct == NOOBCSV_CT_EOF)
       return 0;
     else if (ct == NOOBCSV_CT_RDELIM && !handle->in_text)
       return 1;
+
+    ct = consume_char(handle, NULL);
   }
 }
 
