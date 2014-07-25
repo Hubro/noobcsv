@@ -73,7 +73,7 @@ static int assert_char_array_eq(char *a1, char *a2,
 {
   ck_assert_msg(
     memcmp(a1, a2, size) == 0,
-    "Assertion \"%s\" == \"%s\" failed: %s = \"%.*s\", %s = \"%.*s\"",
+    "Assertion (%s == %s) failed: %s = \"%.*s\", %s = \"%.*s\"",
     as1, as2, as1, size, a1, as2, size, a2
   );
 }
