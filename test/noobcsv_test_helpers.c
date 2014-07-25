@@ -52,7 +52,9 @@ static FILE *open_test_file(char *name, char *mode)
   char path_buffer[bufsize];
 
   /* Fetches the path to the current executable. Linux only! */
-  readlink("/proc/self/exe", path_buffer, bufsize);
+  ssize_t size = readlink("/proc/self/exe", path_buffer, bufsize);
+
+  path_buffer[size] = '\0';
 
   char* dir = dirname(path_buffer);
 
