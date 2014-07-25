@@ -58,13 +58,11 @@ int noobcsv_read(NoobCSVHandle *handle, char* buffer, int buffer_size)
 
   char c;
   int chars_read = 0;
-  int i;
   noobcsv_ct ct;
 
-  for (i = 0; i < buffer_size; i++) {
-    if (i == buffer_size)
-      break;
-
+  /* "i" acts as a cursor to "buffer", so it's only iterated when a character is
+   * actually written to the buffer */
+  while (chars_read < buffer_size) {
     ct = peek_char(handle, &c);
 
     /* Reached end of field? */
@@ -77,11 +75,13 @@ int noobcsv_read(NoobCSVHandle *handle, char* buffer, int buffer_size)
     /* Opening text delimiter? */
     if (ct == NOOBCSV_CT_TDELIM_OPEN) {
       consume_char_nopeek(handle, ct);
+
+      continue;
     }
 
     /* Pure text! Gobble it up */
     if (ct == NOOBCSV_CT_TEXT) {
-      buffer[i] = c;
+      buffer[chars_read] = c;
       chars_read++;
       consume_char_nopeek(handle, ct);
 

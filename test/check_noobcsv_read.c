@@ -148,14 +148,53 @@ START_TEST(check_read)
   int result;
   char buffer[buffer_size];
 
+  /* Reads first field */
   result = noobcsv_read(handle, buffer, buffer_size);
-
   ASSERT_INT_EQ(result, 1);
   ASSERT_CHAR_ARRAY_EQ(buffer, "x", 1);
 
+  /* Nothing more to read in this field */
   result = noobcsv_read(handle, buffer, buffer_size);
+  ASSERT_INT_EQ(result, 0);
 
-  ASSERT_INT_EQ(result, 0);   /* Nothing more to read in this field */
+  noobcsv_next_field(handle);
+
+  /* Reads second field */
+  result = noobcsv_read(handle, buffer, buffer_size);
+  ASSERT_INT_EQ(result, 1);
+  ASSERT_CHAR_ARRAY_EQ(buffer, "y", 1);
+
+  noobcsv_next_record(handle);
+
+  /* Reads first field of second record */
+  result = noobcsv_read(handle, buffer, buffer_size);
+  ASSERT_INT_EQ(result, 1);
+  ASSERT_CHAR_ARRAY_EQ(buffer, "3", 1);
+
+  noobcsv_next_field(handle);
+  noobcsv_next_field(handle);
+
+  /* Reads third field of second record */
+  result = noobcsv_read(handle, buffer, buffer_size);
+  ASSERT_INT_EQ(result, 1);
+  ASSERT_CHAR_ARRAY_EQ(buffer, "8", 1);
+
+  noobcsv_next_record(handle);
+  noobcsv_next_field(handle);
+  noobcsv_next_field(handle);
+
+  /* Reads third field of third record */
+  result = noobcsv_read(handle, buffer, buffer_size);
+  ASSERT_INT_EQ(result, 1);
+  ASSERT_CHAR_ARRAY_EQ(buffer, "c", 1);
+
+  /* Nothing more to read in this field */
+  result = noobcsv_read(handle, buffer, buffer_size);
+  ASSERT_INT_EQ(result, 0);
+
+  /* No more fields left */
+  result = noobcsv_next_field(handle);
+  ASSERT_INT_EQ(result, 0);
 
   FREE_TEST_HANDLE;
 }
