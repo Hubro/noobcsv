@@ -12,7 +12,7 @@
 
 START_TEST(check_next_field)
 {
-  SET_UP_TEST_HANDLE ("simple.csv", "r");
+  SET_UP_TEST_HANDLE("simple.csv", "r");
 
   ASSERT_INT_EQ(handle->readbufcrs, -1);
 
@@ -31,8 +31,8 @@ START_TEST(check_next_field)
   result = noobcsv_next_field(handle);
   ASSERT_INT_EQ(result, 0);
 
-  /* The cursor should rest on the null-byte after the last byte of the file */
-  ASSERT_INT_EQ(handle->readbufcrs, 18);
+  /* The cursor should rest on the final line break of the file */
+  ASSERT_INT_EQ(handle->readbufcrs, 17);
 
   FREE_TEST_HANDLE;
 }
@@ -40,7 +40,7 @@ END_TEST
 
 START_TEST(check_next_field_quotes)
 {
-  SET_UP_TEST_HANDLE ("quoted.csv", "r");
+  SET_UP_TEST_HANDLE("quoted.csv", "r");
 
   ASSERT_INT_EQ(-1, handle->readbufcrs);
 
@@ -62,8 +62,8 @@ START_TEST(check_next_field_quotes)
   result = noobcsv_next_field(handle);
   ASSERT_INT_EQ(result, 0);
 
-  /* The cursor should rest on the null-byte after the last byte of the file */
-  ASSERT_INT_EQ(handle->readbufcrs, 81);
+  /* The cursor should rest on the final line break of the file */
+  ASSERT_INT_EQ(handle->readbufcrs, 80);
 
   FREE_TEST_HANDLE;
 }
@@ -71,14 +71,14 @@ END_TEST
 
 START_TEST(check_next_field_mini)
 {
-  SET_UP_TEST_HANDLE ("minimum.csv", "r");
+  SET_UP_TEST_HANDLE("minimum.csv", "r");
 
   ASSERT_INT_EQ(-1, handle->readbufcrs);
 
   int result = noobcsv_next_field(handle);
   ASSERT_INT_EQ(result, 0);
 
-  ASSERT_INT_EQ(handle->readbufcrs, 2);
+  ASSERT_INT_EQ(handle->readbufcrs, 1);
 
   FREE_TEST_HANDLE;
 }
@@ -105,8 +105,8 @@ START_TEST(check_next_record)
   result = noobcsv_next_record(handle);
   ASSERT_INT_EQ(result, 0);
 
-  /* The cursor should rest on the null-byte after the last byte of the file */
-  ASSERT_INT_EQ(handle->readbufcrs, 18);
+  /* The cursor should rest on the final line break of the file */
+  ASSERT_INT_EQ(handle->readbufcrs, 17);
 
   FREE_TEST_HANDLE;
 }
@@ -114,7 +114,7 @@ END_TEST
 
 START_TEST(check_next_record_quotes)
 {
-  SET_UP_TEST_HANDLE ("quoted.csv", "r");
+  SET_UP_TEST_HANDLE("quoted.csv", "r");
 
   ASSERT_INT_EQ(-1, handle->readbufcrs);
 
@@ -133,8 +133,8 @@ START_TEST(check_next_record_quotes)
   result = noobcsv_next_record(handle);
   ASSERT_INT_EQ(result, 0);
 
-  /* The cursor should rest on the null-byte after the last byte of the file */
-  ASSERT_INT_EQ(handle->readbufcrs, 81);
+  /* The cursor should rest on the final line break of the file */
+  ASSERT_INT_EQ(handle->readbufcrs, 80);
 
   FREE_TEST_HANDLE;
 }

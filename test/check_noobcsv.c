@@ -11,7 +11,7 @@ START_TEST (check_options_struct)
   struct NoobCSVOptions opts = {
     .field_delimiter = 'f',
     .text_delimiter = 't',
-    .line_endings = 'l',
+    .record_delimiter = 'l',
 
     .auto_line_endings = 23
   };
@@ -26,7 +26,7 @@ START_TEST (check_create_opts)
 
   ck_assert_int_eq(',', opts.field_delimiter);
   ck_assert_int_eq('"', opts.text_delimiter);
-  ck_assert_int_eq('\n', opts.line_endings);
+  ck_assert_int_eq('\n', opts.record_delimiter);
   ck_assert_int_eq(1, opts.auto_line_endings);
 }
 END_TEST

@@ -21,10 +21,17 @@ struct NoobCSVHandle_ {
 /* noobcsv character types */
 typedef enum {
   NOOBCSV_CT_TEXT,
+
+  /* Field delimiter */
   NOOBCSV_CT_FDELIM,
+
+  /* Record delimiter */
+  NOOBCSV_CT_RDELIM,
+
+  /* Opening and closing text delimiters */
   NOOBCSV_CT_TDELIM_OPEN,
   NOOBCSV_CT_TDELIM_CLOSE,
-  NOOBCSV_CT_LINE_BREAK,
+
   NOOBCSV_CT_EOF
 } noobcsv_ct;
 

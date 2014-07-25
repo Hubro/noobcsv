@@ -10,7 +10,7 @@ struct NoobCSVOptions noobcsv_create_opts()
 
   opts.field_delimiter = ',';
   opts.text_delimiter = '"';
-  opts.line_endings = '\n';
+  opts.record_delimiter = '\n';
 
   opts.auto_line_endings = 1;
 

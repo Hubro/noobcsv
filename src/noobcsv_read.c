@@ -7,8 +7,9 @@
 static int ready_buffer(NoobCSVHandle *handle);
 static void fill_buffer(NoobCSVHandle *handle);
 static noobcsv_ct consume_char(NoobCSVHandle *handle, char *out);
+static noobcsv_ct peek_char(NoobCSVHandle *handle, char *out);
 static noobcsv_tdt on_text_delimiter(NoobCSVHandle *handle);
-static int is_line_break(char c, NoobCSVHandle *handle);
+static int is_record_delimiter(char c, NoobCSVHandle *handle);
 
 int noobcsv_next_field(NoobCSVHandle *handle)
 {
@@ -26,7 +27,7 @@ int noobcsv_next_field(NoobCSVHandle *handle)
       return 0;
     else if (ct == NOOBCSV_CT_FDELIM)
       return 1;
-    else if (ct == NOOBCSV_CT_LINE_BREAK && !handle->in_text)
+    else if (ct == NOOBCSV_CT_RDELIM && !handle->in_text)
       return 1;
   }
 }
@@ -45,7 +46,7 @@ int noobcsv_next_record(NoobCSVHandle *handle)
 
     if (ct == NOOBCSV_CT_EOF)
       return 0;
-    else if (ct == NOOBCSV_CT_LINE_BREAK && !handle->in_text)
+    else if (ct == NOOBCSV_CT_RDELIM && !handle->in_text)
       return 1;
   }
 }
@@ -99,10 +100,50 @@ static void fill_buffer(NoobCSVHandle *handle)
     handle->readbuf[bytes_read] = '\0';
 }
 
-/* Consumes one character (or possibly two, if auto_line_endings is 1).
- * If the character consumed is just the final line break before EOF,
- * NOOBCSV_CT_EOF is returned instead of NOOBCSV_CT_LINE_BREAK. */
+/* Consumes one character (or two, in a couple of cases.) If the character
+ * consumed is the final line break before EOF, NOOBCSV_CT_EOF is returned
+ * instead of NOOBCSV_CT_RDELIM. */
 static noobcsv_ct consume_char(NoobCSVHandle *handle, char *out)
+{
+  char c;
+  noobcsv_ct ct = peek_char(handle, &c);
+
+  if (out != NULL)
+    *out = c;
+
+  /* Nothing more to consume */
+  if (ct == NOOBCSV_CT_EOF)
+    return ct;
+
+  /* Should an additional character be consumed? */
+  noobcsv_tdt t = on_text_delimiter(handle);
+
+  if (t == NOOBCSV_TDT_ESCAPED) {
+    handle->readbufcrs++;
+  }
+  else {
+    if (handle->readbuf[handle->readbufcrs] == '\r' &&
+        handle->readbuf[handle->readbufcrs + 1] == '\n')
+      handle->readbufcrs++;
+  }
+
+  /* Now between text delimiters? */
+  if (ct == NOOBCSV_CT_TDELIM_OPEN)
+    handle->in_text = 1;
+  else if (ct == NOOBCSV_CT_TDELIM_CLOSE)
+    handle->in_text = 0;
+
+  /* Consume the character */
+  handle->readbufcrs++;
+
+  /* Only 1 or less chars left in the buffer? Time for a refill */
+  if (handle->readbufcrs >= handle->bufsize - 2)
+    fill_buffer(handle);
+
+  return ct;
+}
+
+static noobcsv_ct peek_char(NoobCSVHandle *handle, char *out)
 {
   FILE *file = handle->file;
   char *buffer = handle->readbuf;
@@ -131,42 +172,43 @@ static noobcsv_ct consume_char(NoobCSVHandle *handle, char *out)
   if (tdt) {
     switch(tdt) {
       case NOOBCSV_TDT_OPENING:
-        handle->in_text = 1;
         retval = NOOBCSV_CT_TDELIM_OPEN;
         goto done;
       case NOOBCSV_TDT_CLOSING:
-        handle->in_text = 0;
         retval = NOOBCSV_CT_TDELIM_CLOSE;
         goto done;
       case NOOBCSV_TDT_ESCAPED:
         retval = NOOBCSV_CT_TEXT;
-        handle->readbufcrs++;   /* The next character must be skipped */
         goto done;
     }
   }
 
-  /* Current character is a line break? */
+  /* Are we between text delimiters? */
+  if (handle->in_text) {
+    retval = NOOBCSV_CT_TEXT;
+    goto done;
+  }
+
+  /* Current character is a record delimiter? */
   if (handle->opts->auto_line_endings) {
     if (curchar == '\n' || curchar == '\r')
-      retval = NOOBCSV_CT_LINE_BREAK;
-
-    /* If this is the '\r' in "\r\n", the cursor is moved ahead one additional
-     * time */
-    if (curchar == '\r' && nextchar == '\n')
-      handle->readbufcrs++;
+      retval = NOOBCSV_CT_RDELIM;
+  }
+  else {
+    if (curchar == handle->opts->record_delimiter)
+      retval = NOOBCSV_CT_RDELIM;
   }
 
 done:
 
-  handle->readbufcrs++;
-
   /* Was this the final line break of the file? */
-  if (retval == NOOBCSV_CT_LINE_BREAK && buffer[handle->readbufcrs] == '\0')
-    retval = NOOBCSV_CT_EOF;
-
-  /* Only 1 more char in the buffer? Time for a refill */
-  if (handle->readbufcrs >= bufsize - 2)
-    fill_buffer(handle);
+  if (retval == NOOBCSV_CT_RDELIM) {
+    if (buffer[handle->readbufcrs + 1] == '\0')
+      retval = NOOBCSV_CT_EOF;
+    if (buffer[handle->readbufcrs + 1] == '\r' &&
+        buffer[handle->readbufcrs + 2] == '\0')
+      retval = NOOBCSV_CT_EOF;
+  }
 
   return retval;
 }
@@ -192,7 +234,7 @@ static noobcsv_tdt on_text_delimiter(NoobCSVHandle *handle)
     /* Is this an opening text delimiter? Opening text delimiters can't be
      * escaped */
     if (!handle->in_text)
-      if (pc == fdelim || is_line_break(pc, handle))
+      if (pc == fdelim || is_record_delimiter(pc, handle))
         return NOOBCSV_TDT_OPENING;
 
     /* Escaped? */
@@ -201,7 +243,7 @@ static noobcsv_tdt on_text_delimiter(NoobCSVHandle *handle)
 
     /* Is this a closing text delimiter? */
     if (handle->in_text)
-      if (nc == fdelim || is_line_break(nc, handle))
+      if (nc == fdelim || is_record_delimiter(nc, handle))
         return NOOBCSV_TDT_CLOSING;
   }
 
@@ -209,7 +251,7 @@ static noobcsv_tdt on_text_delimiter(NoobCSVHandle *handle)
 }
 
 /* Returns true if the input character is a line break */
-static int is_line_break(char c, NoobCSVHandle *handle)
+static int is_record_delimiter(char c, NoobCSVHandle *handle)
 {
   if (handle->opts->auto_line_endings) {
     if (c == '\r' || c == '\n')
@@ -218,6 +260,6 @@ static int is_line_break(char c, NoobCSVHandle *handle)
       return 0;
   }
   else {
-    return c == handle->opts->line_endings;
+    return c == handle->opts->record_delimiter;
   }
 }

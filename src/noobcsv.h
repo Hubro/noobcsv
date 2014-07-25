@@ -17,7 +17,7 @@ typedef struct NoobCSVHandle_ NoobCSVHandle;
 struct NoobCSVOptions {
   char field_delimiter;
   char text_delimiter;
-  char line_endings;
+  char record_delimiter;
 
   int auto_line_endings;
 };
