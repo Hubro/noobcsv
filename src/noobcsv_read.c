@@ -7,6 +7,7 @@
 static int ready_buffer(NoobCSVHandle *handle);
 static void fill_buffer(NoobCSVHandle *handle);
 static noobcsv_ct consume_char(NoobCSVHandle *handle, char *out);
+static noobcsv_ct consume_char_nopeek(NoobCSVHandle *handle, noobcsv_ct peek);
 static noobcsv_ct peek_char(NoobCSVHandle *handle, char *out);
 static noobcsv_tdt on_text_delimiter(NoobCSVHandle *handle);
 static int is_record_delimiter(char c, NoobCSVHandle *handle);
@@ -62,10 +63,6 @@ static int ready_buffer(NoobCSVHandle *handle)
     fill_buffer(handle);
   }
 
-  /* Nothing more to read */
-  if (handle->readbuf[handle->readbufcrs] == '\0')
-    return 0;
-
   return 1;
 }
 
@@ -105,11 +102,18 @@ static void fill_buffer(NoobCSVHandle *handle)
  * instead of NOOBCSV_CT_RDELIM. */
 static noobcsv_ct consume_char(NoobCSVHandle *handle, char *out)
 {
-  char c;
-  noobcsv_ct ct = peek_char(handle, &c);
+  noobcsv_ct ct = peek_char(handle, out);
 
-  if (out != NULL)
-    *out = c;
+  consume_char_nopeek(handle, ct);
+
+  return ct;
+}
+
+/* Consumes a character, but skips the "peek" step. This saves work if the
+ * caller has already peeked. */
+static noobcsv_ct consume_char_nopeek(NoobCSVHandle *handle, noobcsv_ct peek)
+{
+  noobcsv_ct ct = peek;
 
   /* Nothing more to consume */
   if (ct == NOOBCSV_CT_EOF)
