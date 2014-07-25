@@ -140,6 +140,48 @@ START_TEST(check_next_record_quotes)
 }
 END_TEST
 
+START_TEST(check_read)
+{
+  SET_UP_TEST_HANDLE("simple.csv", "r");
+
+  int buffer_size = 128;
+  int result;
+  char buffer[buffer_size];
+
+  result = noobcsv_read(handle, buffer, buffer_size);
+
+  ASSERT_INT_EQ(result, 1);
+  ASSERT_CHAR_ARRAY_EQ(buffer, "x", 1);
+
+  result = noobcsv_read(handle, buffer, buffer_size);
+
+  ASSERT_INT_EQ(result, 0);   /* Nothing more to read in this field */
+
+  FREE_TEST_HANDLE;
+}
+END_TEST
+
+START_TEST(check_read_quotes)
+{
+  SET_UP_TEST_HANDLE("quoted.csv", "r");
+
+  int buffer_size = 128;
+  int result;
+  char buffer[buffer_size];
+
+  result = noobcsv_read(handle, buffer, buffer_size);
+
+  ASSERT_INT_EQ(result, 3);
+  ASSERT_CHAR_ARRAY_EQ(buffer, "foo", 3);
+
+  result = noobcsv_read(handle, buffer, buffer_size);
+
+  ASSERT_INT_EQ(result, 0);   /* Nothing more to read in this field */
+
+  FREE_TEST_HANDLE;
+}
+END_TEST
+
 /**********************
  *  Static functions  *
  **********************/
@@ -228,6 +270,9 @@ TCase* noobcsv_read_tc(void)
   tcase_add_test(tc_write, check_fill_buffer);
   tcase_add_test(tc_write, check_fill_buffer_eof);
   tcase_add_test(tc_write, check_fill_buffer_whole_file);
+
+  tcase_add_test(tc_write, check_read);
+  tcase_add_test(tc_write, check_read_quotes);
 
   return tc_write;
 }

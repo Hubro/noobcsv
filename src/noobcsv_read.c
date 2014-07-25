@@ -52,6 +52,46 @@ int noobcsv_next_record(NoobCSVHandle *handle)
   }
 }
 
+int noobcsv_read(NoobCSVHandle *handle, char* buffer, int buffer_size)
+{
+  ready_buffer(handle);
+
+  char c;
+  int chars_read = 0;
+  int i;
+  noobcsv_ct ct;
+
+  for (i = 0; i < buffer_size; i++) {
+    if (i == buffer_size)
+      break;
+
+    ct = peek_char(handle, &c);
+
+    /* Reached end of field? */
+    if (ct == NOOBCSV_CT_FDELIM ||
+        ct == NOOBCSV_CT_TDELIM_CLOSE ||
+        ct == NOOBCSV_CT_RDELIM ||
+        ct == NOOBCSV_CT_EOF)
+      break;
+
+    /* Opening text delimiter? */
+    if (ct == NOOBCSV_CT_TDELIM_OPEN) {
+      consume_char_nopeek(handle, ct);
+    }
+
+    /* Pure text! Gobble it up */
+    if (ct == NOOBCSV_CT_TEXT) {
+      buffer[i] = c;
+      chars_read++;
+      consume_char_nopeek(handle, ct);
+
+      continue;
+    }
+  }
+
+  return chars_read;
+}
+
 /* Fills the buffer if it hasn't been filled yet. Returns 0 if there is nothing
  * more to read. */
 static int ready_buffer(NoobCSVHandle *handle)

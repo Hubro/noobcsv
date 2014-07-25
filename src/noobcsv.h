@@ -49,6 +49,9 @@ int noobcsv_next_field(NoobCSVHandle *handle);
 /* Moves the file position indicator to the start of the next record */
 int noobcsv_next_record(NoobCSVHandle *handle);
 
+/* Reads from the current field. Returns the amount of characters read */
+int noobcsv_read(NoobCSVHandle *handle, char* buffer, int buffer_size);
+
 /***************************************************************************
  *                       WRITE-SPECIFIC DECLARATIONS                       *
  ***************************************************************************/
