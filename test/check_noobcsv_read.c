@@ -17,7 +17,7 @@ START_TEST(check_next_field)
   ASSERT_INT_EQ(handle->readbufcrs, -1);
 
   /* Expected indexes */
-  int ei[] = {2, 4, 6, 8, 10, 12, 14, 16};
+  int ei[] = {2, 4};
   int count = sizeof(ei) / sizeof(ei[0]);
   int i, result;
 
@@ -31,8 +31,8 @@ START_TEST(check_next_field)
   result = noobcsv_next_field(handle);
   ASSERT_INT_EQ(result, 0);
 
-  /* The cursor should rest on the final line break of the file */
-  ASSERT_INT_EQ(handle->readbufcrs, 17);
+  /* The cursor should rest on the end of the third field */
+  ASSERT_INT_EQ(handle->readbufcrs, 5);
 
   FREE_TEST_HANDLE;
 }
@@ -45,7 +45,8 @@ START_TEST(check_next_field_quotes)
   ASSERT_INT_EQ(-1, handle->readbufcrs);
 
   /* Expected indexes */
-  int ei[] = {6, 12, 18, 21, 28, 33, 40, 49, 53, 75, 78};
+  // int ei[] = {6, 12, 18, 21, 28, 33, 40, 49, 53, 75, 78};
+  int ei[] = {6, 12};
   int count = sizeof(ei) / sizeof(ei[0]);
   int i, result;
 
@@ -62,8 +63,8 @@ START_TEST(check_next_field_quotes)
   result = noobcsv_next_field(handle);
   ASSERT_INT_EQ(result, 0);
 
-  /* The cursor should rest on the final line break of the file */
-  ASSERT_INT_EQ(handle->readbufcrs, 80);
+  /* The cursor should rest on the end of the third field */
+  ASSERT_INT_EQ(handle->readbufcrs, 17);
 
   FREE_TEST_HANDLE;
 }
