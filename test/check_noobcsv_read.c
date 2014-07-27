@@ -209,14 +209,47 @@ START_TEST(check_read_quotes)
   int result;
   char buffer[buffer_size];
 
-  result = noobcsv_read(handle, buffer, buffer_size);
+  char *expected_fields[][3] = {
+    {"foo", "bar", "baz"},
+    {"no", "quotes", "here"},
+    {"partly", "quoted", "row"},
+    {"\"tricky\", \"one\"", "", ""}
+  };
 
-  ASSERT_INT_EQ(result, 3);
-  ASSERT_CHAR_ARRAY_EQ(buffer, "foo", 3);
+  int field_count = 3;
+  int record_count = 4;
+  int r, f;
 
-  result = noobcsv_read(handle, buffer, buffer_size);
+  for (r = 0; r < record_count; r++) {
+    for (f = 0; f < field_count; f++) {
+      /* Reads the entire field */
+      result = noobcsv_read(handle, buffer, buffer_size);
+      ASSERT_INT_EQ(result, strlen(expected_fields[r][f]));
+      ASSERT_CHAR_ARRAY_EQ(
+        buffer, expected_fields[r][f], strlen(expected_fields[r][f])
+      );
 
-  ASSERT_INT_EQ(result, 0);   /* Nothing more to read in this field */
+      /* Nothing more to read in this field */
+      result = noobcsv_read(handle, buffer, buffer_size);
+      ASSERT_INT_EQ(result, 0);
+
+      /* Going to the next field should only succeed if there are more fields */
+      result = noobcsv_next_field(handle);
+
+      if (f == field_count - 1)
+        ASSERT_INT_EQ(result, 0);
+      else
+        ASSERT_INT_EQ(result, 1);
+    }
+
+    /* Going to the next record should only succeed if there are more records */
+    result = noobcsv_next_record(handle);
+
+    if (r == record_count - 1)
+      ASSERT_INT_EQ(result, 0);
+    else
+      ASSERT_INT_EQ(result, 1);
+  }
 
   FREE_TEST_HANDLE;
 }
